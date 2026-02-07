@@ -1,31 +1,41 @@
-package wit_async
+package async
 
 import (
 	"fmt"
 	"runtime"
 	"unsafe"
 
-	"github.com/bytecodealliance/wit-bindgen/wit_runtime"
+	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
 )
 
-const EVENT_NONE uint32 = 0
-const EVENT_SUBTASK uint32 = 1
-const EVENT_STREAM_READ uint32 = 2
-const EVENT_STREAM_WRITE uint32 = 3
-const EVENT_FUTURE_READ uint32 = 4
-const EVENT_FUTURE_WRITE uint32 = 5
+// Note: These constants have specific values defined by the canonical ABI, so we use explicit values instead of iota.
 
-const STATUS_STARTING uint32 = 0
-const STATUS_STARTED uint32 = 1
-const STATUS_RETURNED uint32 = 2
+const (
+	EVENT_NONE         uint32 = 0
+	EVENT_SUBTASK      uint32 = 1
+	EVENT_STREAM_READ  uint32 = 2
+	EVENT_STREAM_WRITE uint32 = 3
+	EVENT_FUTURE_READ  uint32 = 4
+	EVENT_FUTURE_WRITE uint32 = 5
+)
 
-const CALLBACK_CODE_EXIT uint32 = 0
-const CALLBACK_CODE_YIELD uint32 = 1
-const CALLBACK_CODE_WAIT uint32 = 2
+const (
+	STATUS_STARTING uint32 = 0
+	STATUS_STARTED  uint32 = 1
+	STATUS_RETURNED uint32 = 2
+)
 
-const RETURN_CODE_BLOCKED uint32 = 0xFFFFFFFF
-const RETURN_CODE_COMPLETED uint32 = 0
-const RETURN_CODE_DROPPED uint32 = 1
+const (
+	CALLBACK_CODE_EXIT  uint32 = 0
+	CALLBACK_CODE_YIELD uint32 = 1
+	CALLBACK_CODE_WAIT  uint32 = 2
+)
+
+const (
+	RETURN_CODE_BLOCKED   uint32 = 0xFFFFFFFF
+	RETURN_CODE_COMPLETED uint32 = 0
+	RETURN_CODE_DROPPED   uint32 = 1
+)
 
 type unit struct{}
 
@@ -137,7 +147,7 @@ func callback(event0, event1, event2 uint32) uint32 {
 				event0, event1, event2 = func() (uint32, uint32, uint32) {
 					pinner := runtime.Pinner{}
 					defer pinner.Unpin()
-					buffer := wit_runtime.Allocate(&pinner, 8, 4)
+					buffer := witRuntime.Allocate(&pinner, 8, 4)
 					event0 := waitableSetPoll(state.waitableSet, buffer)
 					return event0,
 						unsafe.Slice((*uint32)(buffer), 2)[0],

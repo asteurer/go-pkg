@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/bytecodealliance/wit-bindgen/wit_async"
-	"github.com/bytecodealliance/wit-bindgen/wit_runtime"
+	witAsync "go.bytecodealliance.org/pkg/wit/async"
+	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
 )
 
 type StreamVtable[T any] struct {
@@ -23,7 +23,7 @@ type StreamVtable[T any] struct {
 
 type StreamReader[T any] struct {
 	vtable        *StreamVtable[T]
-	handle        *wit_runtime.Handle
+	handle        *witRuntime.Handle
 	writerDropped bool
 }
 
@@ -59,7 +59,7 @@ func (self *StreamReader[T]) Read(dst []T) uint32 {
 	if self.vtable.Lift == nil {
 		buffer = unsafe.Pointer(unsafe.SliceData(dst))
 	} else {
-		buffer = wit_runtime.Allocate(
+		buffer = witRuntime.Allocate(
 			&pinner,
 			uintptr(self.vtable.Size*uint32(len(dst))),
 			uintptr(self.vtable.Align),
@@ -67,9 +67,9 @@ func (self *StreamReader[T]) Read(dst []T) uint32 {
 	}
 	pinner.Pin(buffer)
 
-	code, count := wit_async.FutureOrStreamWait(self.vtable.Read(handle, buffer, uint32(len(dst))), handle)
+	code, count := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer, uint32(len(dst))), handle)
 
-	if code == wit_async.RETURN_CODE_DROPPED {
+	if code == witAsync.RETURN_CODE_DROPPED {
 		self.writerDropped = true
 	}
 
@@ -99,7 +99,7 @@ func (self *StreamReader[T]) SetHandle(handle int32) {
 }
 
 func MakeStreamReader[T any](vtable *StreamVtable[T], handleValue int32) *StreamReader[T] {
-	handle := wit_runtime.MakeHandle(handleValue)
+	handle := witRuntime.MakeHandle(handleValue)
 	value := &StreamReader[T]{vtable, handle, false}
 	runtime.AddCleanup(value, func(_ int) {
 		handleValue := handle.TakeOrNil()
@@ -112,7 +112,7 @@ func MakeStreamReader[T any](vtable *StreamVtable[T], handleValue int32) *Stream
 
 type StreamWriter[T any] struct {
 	vtable        *StreamVtable[T]
-	handle        *wit_runtime.Handle
+	handle        *witRuntime.Handle
 	readerDropped bool
 }
 
@@ -145,7 +145,7 @@ func (self *StreamWriter[T]) Write(items []T) uint32 {
 		pinner.Pin(buffer)
 	} else {
 		lifters = make([]func(), 0, writeCount)
-		buffer = wit_runtime.Allocate(
+		buffer = witRuntime.Allocate(
 			&pinner,
 			uintptr(self.vtable.Size*writeCount),
 			uintptr(self.vtable.Align),
@@ -158,7 +158,7 @@ func (self *StreamWriter[T]) Write(items []T) uint32 {
 		}
 	}
 
-	code, count := wit_async.FutureOrStreamWait(self.vtable.Write(handle, buffer, writeCount), handle)
+	code, count := witAsync.FutureOrStreamWait(self.vtable.Write(handle, buffer, writeCount), handle)
 
 	if lifters != nil && count < writeCount {
 		for _, lifter := range lifters[count:] {
@@ -166,7 +166,7 @@ func (self *StreamWriter[T]) Write(items []T) uint32 {
 		}
 	}
 
-	if code == wit_async.RETURN_CODE_DROPPED {
+	if code == witAsync.RETURN_CODE_DROPPED {
 		self.readerDropped = true
 	}
 
@@ -187,7 +187,7 @@ func (self *StreamWriter[T]) WriteAll(items []T) uint32 {
 	return offset
 }
 
-// Notify the host that the StreamReader is no longer being used.
+// Notify the host that the StreamWriter is no longer being used.
 func (self *StreamWriter[T]) Drop() {
 	handle := self.handle.TakeOrNil()
 	if handle != 0 {
@@ -196,12 +196,12 @@ func (self *StreamWriter[T]) Drop() {
 }
 
 func MakeStreamWriter[T any](vtable *StreamVtable[T], handleValue int32) *StreamWriter[T] {
-	handle := wit_runtime.MakeHandle(handleValue)
+	handle := witRuntime.MakeHandle(handleValue)
 	value := &StreamWriter[T]{vtable, handle, false}
 	runtime.AddCleanup(value, func(_ int) {
 		handleValue := handle.TakeOrNil()
 		if handleValue != 0 {
-			vtable.DropReadable(handleValue)
+			vtable.DropWritable(handleValue)
 		}
 	}, 0)
 	return value

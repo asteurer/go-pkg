@@ -1,4 +1,4 @@
-package wit_runtime
+package runtime
 
 import (
 	"fmt"
@@ -10,35 +10,35 @@ type Handle struct {
 	value int32
 }
 
-func (self *Handle) Use() int32 {
-	if self.value == 0 {
+func (h *Handle) Use() int32 {
+	if h.value == 0 {
 		panic("nil handle")
 	}
-	return self.value
+	return h.value
 }
 
-func (self *Handle) Take() int32 {
-	if self.value == 0 {
+func (h *Handle) Take() int32 {
+	if h.value == 0 {
 		panic("nil handle")
 	}
-	value := self.value
-	self.value = 0
+	value := h.value
+	h.value = 0
 	return value
 }
 
-func (self *Handle) Set(value int32) {
+func (h *Handle) Set(value int32) {
 	if value == 0 {
 		panic("nil handle")
 	}
-	if self.value != 0 {
+	if h.value != 0 {
 		panic("handle already set")
 	}
-	self.value = value
+	h.value = value
 }
 
-func (self *Handle) TakeOrNil() int32 {
-	value := self.value
-	self.value = 0
+func (h *Handle) TakeOrNil() int32 {
+	value := h.value
+	h.value = 0
 	return value
 }
 
@@ -57,7 +57,7 @@ func Allocate(pinner *runtime.Pinner, size, align uintptr) unsafe.Pointer {
 
 func allocateRaw(size, align uintptr) unsafe.Pointer {
 	if size == 0 {
-		return unsafe.Pointer(uintptr(0))
+		return nil
 	}
 
 	if size%align != 0 {
@@ -86,12 +86,14 @@ func allocateRaw(size, align uintptr) unsafe.Pointer {
 //go:linkname sbrk runtime.sbrk
 func sbrk(n uintptr) unsafe.Pointer
 
+//nolint:unused
 var useGCAllocations = false
 
 func init() {
 	useGCAllocations = true
 }
 
+//nolint:unused
 func offset(ptr, align uintptr) uintptr {
 	newptr := (ptr + align - 1) &^ (align - 1)
 	return newptr - ptr
@@ -103,6 +105,7 @@ func Unpin() {
 	pinner.Unpin()
 }
 
+//nolint:unused
 //go:wasmexport cabi_realloc
 func cabiRealloc(oldPointer unsafe.Pointer, oldSize, align, newSize uintptr) unsafe.Pointer {
 	if oldPointer != nil || oldSize != 0 {

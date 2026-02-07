@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/bytecodealliance/wit-bindgen/wit_async"
-	"github.com/bytecodealliance/wit-bindgen/wit_runtime"
+	witAsync "go.bytecodealliance.org/pkg/wit/async"
+	witRuntime "go.bytecodealliance.org/pkg/wit/runtime"
 )
 
 type FutureVtable[T any] struct {
@@ -23,7 +23,7 @@ type FutureVtable[T any] struct {
 
 type FutureReader[T any] struct {
 	vtable *FutureVtable[T]
-	handle *wit_runtime.Handle
+	handle *witRuntime.Handle
 }
 
 // Blocks until the future completes and returns its value.
@@ -38,19 +38,19 @@ func (self *FutureReader[T]) Read() T {
 	pinner := runtime.Pinner{}
 	defer pinner.Unpin()
 
-	buffer := wit_runtime.Allocate(&pinner, uintptr(self.vtable.Size), uintptr(self.vtable.Align))
+	buffer := witRuntime.Allocate(&pinner, uintptr(self.vtable.Size), uintptr(self.vtable.Align))
 
-	code, _ := wit_async.FutureOrStreamWait(self.vtable.Read(handle, buffer), handle)
+	code, _ := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer), handle)
 
 	switch code {
-	case wit_async.RETURN_CODE_COMPLETED:
+	case witAsync.RETURN_CODE_COMPLETED:
 		if self.vtable.Lift == nil {
 			return unsafe.Slice((*T)(buffer), 1)[0]
 		} else {
 			return self.vtable.Lift(buffer)
 		}
 
-	case wit_async.RETURN_CODE_DROPPED:
+	case witAsync.RETURN_CODE_DROPPED:
 		panic("unreachable")
 
 	default:
@@ -75,7 +75,7 @@ func (self *FutureReader[T]) SetHandle(handle int32) {
 }
 
 func MakeFutureReader[T any](vtable *FutureVtable[T], handleValue int32) *FutureReader[T] {
-	handle := wit_runtime.MakeHandle(handleValue)
+	handle := witRuntime.MakeHandle(handleValue)
 	value := &FutureReader[T]{vtable, handle}
 	runtime.AddCleanup(value, func(_ int) {
 		handleValue := handle.TakeOrNil()
@@ -88,7 +88,7 @@ func MakeFutureReader[T any](vtable *FutureVtable[T], handleValue int32) *Future
 
 type FutureWriter[T any] struct {
 	vtable *FutureVtable[T]
-	handle *wit_runtime.Handle
+	handle *witRuntime.Handle
 }
 
 // Writes data to a future.
@@ -109,17 +109,17 @@ func (self *FutureWriter[T]) Write(item T) bool {
 		buffer = unsafe.Pointer(unsafe.SliceData([]T{item}))
 		pinner.Pin(buffer)
 	} else {
-		buffer = wit_runtime.Allocate(&pinner, uintptr(self.vtable.Size), uintptr(self.vtable.Align))
+		buffer = witRuntime.Allocate(&pinner, uintptr(self.vtable.Size), uintptr(self.vtable.Align))
 		lifter = self.vtable.Lower(&pinner, item, buffer)
 	}
 
-	code, _ := wit_async.FutureOrStreamWait(self.vtable.Write(handle, buffer), handle)
+	code, _ := witAsync.FutureOrStreamWait(self.vtable.Write(handle, buffer), handle)
 
 	switch code {
-	case wit_async.RETURN_CODE_COMPLETED:
+	case witAsync.RETURN_CODE_COMPLETED:
 		return true
 
-	case wit_async.RETURN_CODE_DROPPED:
+	case witAsync.RETURN_CODE_DROPPED:
 		if lifter != nil {
 			lifter()
 		}
@@ -139,12 +139,12 @@ func (self *FutureWriter[T]) Drop() {
 }
 
 func MakeFutureWriter[T any](vtable *FutureVtable[T], handleValue int32) *FutureWriter[T] {
-	handle := wit_runtime.MakeHandle(handleValue)
+	handle := witRuntime.MakeHandle(handleValue)
 	value := &FutureWriter[T]{vtable, handle}
 	runtime.AddCleanup(value, func(_ int) {
 		handleValue := handle.TakeOrNil()
 		if handleValue != 0 {
-			vtable.DropReadable(handleValue)
+			vtable.DropWritable(handleValue)
 		}
 	}, 0)
 	return value
