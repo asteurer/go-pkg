@@ -1,3 +1,3 @@
 module go.bytecodealliance.org/pkg
 
-go 1.25
+go 1.27.1
