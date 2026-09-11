@@ -4,6 +4,7 @@ package wasihttp
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"slices"
 
@@ -52,12 +53,15 @@ func (w *responseWriter) Write(buf []byte) (int, error) {
 		return 0, err
 	}
 
-	count := w.stream.Write(buf)
-	if count == 0 && w.stream.ReaderDropped() {
-		return 0, w.takeError()
+	n := int(w.stream.WriteAll(buf))
+	if n < len(buf) {
+		if err := w.takeError(); err != nil {
+			return n, err
+		}
+		return n, io.ErrShortWrite
 	}
 
-	return int(count), nil
+	return n, nil
 }
 
 func (w *responseWriter) Flush() {}
