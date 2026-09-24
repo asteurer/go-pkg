@@ -15,19 +15,19 @@ func TestLogLevelMapping(t *testing.T) {
 		slogLevel slog.Level
 	}{
 		"debug": {
-			wasiLevel: logging.LevelDebug,
+			wasiLevel: logging.Level_Debug,
 			slogLevel: slog.LevelDebug,
 		},
 		"info": {
-			wasiLevel: logging.LevelInfo,
+			wasiLevel: logging.Level_Info,
 			slogLevel: slog.LevelInfo,
 		},
 		"warn": {
-			wasiLevel: logging.LevelWarn,
+			wasiLevel: logging.Level_Warn,
 			slogLevel: slog.LevelWarn,
 		},
 		"error": {
-			wasiLevel: logging.LevelError,
+			wasiLevel: logging.Level_Error,
 			slogLevel: slog.LevelError,
 		},
 	}
