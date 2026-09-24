@@ -51,7 +51,7 @@ func (row *responseOutparamWriter) Write(buf []byte) (int, error) {
 
 	writeResult := row.stream.Write(buf)
 	if writeResult.IsErr() {
-		if writeResult.Err().Tag() == streams.StreamErrorClosed {
+		if writeResult.Err().Tag() == streams.StreamError_Closed {
 			return 0, io.EOF
 		}
 
@@ -205,25 +205,25 @@ func wasiToHTTPRequest(ir *types.IncomingRequest) (req *http.Request, err error)
 
 func methodToString(m types.Method) (string, error) {
 	switch m.Tag() {
-	case types.MethodConnect:
+	case types.Method_Connect:
 		return http.MethodConnect, nil
-	case types.MethodDelete:
+	case types.Method_Delete:
 		return http.MethodDelete, nil
-	case types.MethodGet:
+	case types.Method_Get:
 		return http.MethodGet, nil
-	case types.MethodHead:
+	case types.Method_Head:
 		return http.MethodHead, nil
-	case types.MethodOptions:
+	case types.Method_Options:
 		return http.MethodOptions, nil
-	case types.MethodPatch:
+	case types.Method_Patch:
 		return http.MethodPatch, nil
-	case types.MethodPost:
+	case types.Method_Post:
 		return http.MethodPost, nil
-	case types.MethodPut:
+	case types.Method_Put:
 		return http.MethodPut, nil
-	case types.MethodTrace:
+	case types.Method_Trace:
 		return http.MethodTrace, nil
-	case types.MethodOther:
+	case types.Method_Other:
 		other := m.Other()
 		return other, fmt.Errorf("unknown http method '%s'", other)
 	}

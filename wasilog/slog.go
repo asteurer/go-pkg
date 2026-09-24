@@ -60,15 +60,15 @@ var _ slog.Handler = (*WebassemblyHandler)(nil)
 func wasiLevel(level slog.Level) logging.Level {
 	switch level {
 	case slog.LevelDebug:
-		return logging.LevelDebug
+		return logging.Level_Debug
 	case slog.LevelInfo:
-		return logging.LevelInfo
+		return logging.Level_Info
 	case slog.LevelWarn:
-		return logging.LevelWarn
+		return logging.Level_Warn
 	case slog.LevelError:
-		return logging.LevelError
+		return logging.Level_Error
 	default:
-		return logging.LevelDebug
+		return logging.Level_Debug
 	}
 }
 

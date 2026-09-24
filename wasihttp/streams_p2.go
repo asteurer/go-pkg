@@ -94,7 +94,7 @@ func (r *inputStreamReader) Read(p []byte) (n int, err error) {
 	readResult := r.stream.Read(uint64(len(p)))
 	if readResult.IsErr() {
 		streamErr := readResult.Err()
-		if streamErr.Tag() == streams.StreamErrorClosed {
+		if streamErr.Tag() == streams.StreamError_Closed {
 			r.trailerOnce.Do(r.parseTrailers)
 			return 0, io.EOF
 		}
@@ -165,7 +165,7 @@ func (r *outgoingBody) Write(p []byte) (n int, err error) {
 		writeResult := r.stream.BlockingWriteAndFlush(p[offset:end])
 		if writeResult.IsErr() {
 			streamErr := writeResult.Err()
-			if streamErr.Tag() == streams.StreamErrorClosed {
+			if streamErr.Tag() == streams.StreamError_Closed {
 				return totalWritten, io.EOF
 			}
 			return totalWritten, fmt.Errorf("failed to write to response body's stream: %s", streamErr.LastOperationFailed().ToDebugString())
