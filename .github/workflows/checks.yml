@@ -23,4 +23,5 @@ jobs:
           version: v2.13.2
           install-only: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: just ensure_no_componentize_go_toml
       - run: just lint
