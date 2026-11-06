@@ -40,7 +40,7 @@ func (self *FutureReader[T]) Read() T {
 
 	buffer := witRuntime.Allocate(&pinner, uintptr(self.vtable.Size), uintptr(self.vtable.Align))
 
-	code, _ := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer), handle)
+	code, _ := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer), handle, self.vtable.CancelRead)
 
 	switch code {
 	case witAsync.RETURN_CODE_COMPLETED:
@@ -113,7 +113,7 @@ func (self *FutureWriter[T]) Write(item T) bool {
 		lifter = self.vtable.Lower(&pinner, item, buffer)
 	}
 
-	code, _ := witAsync.FutureOrStreamWait(self.vtable.Write(handle, buffer), handle)
+	code, _ := witAsync.FutureOrStreamWait(self.vtable.Write(handle, buffer), handle, self.vtable.CancelWrite)
 
 	switch code {
 	case witAsync.RETURN_CODE_COMPLETED:

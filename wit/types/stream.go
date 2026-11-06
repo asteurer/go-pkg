@@ -67,7 +67,7 @@ func (self *StreamReader[T]) Read(dst []T) uint32 {
 	}
 	pinner.Pin(buffer)
 
-	code, count := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer, uint32(len(dst))), handle)
+	code, count := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer, uint32(len(dst))), handle, self.vtable.CancelRead)
 
 	if code == witAsync.RETURN_CODE_DROPPED {
 		self.writerDropped = true
@@ -158,7 +158,7 @@ func (self *StreamWriter[T]) Write(items []T) uint32 {
 		}
 	}
 
-	code, count := witAsync.FutureOrStreamWait(self.vtable.Write(handle, buffer, writeCount), handle)
+	code, count := witAsync.FutureOrStreamWait(self.vtable.Write(handle, buffer, writeCount), handle, self.vtable.CancelWrite)
 
 	if lifters != nil && count < writeCount {
 		for _, lifter := range lifters[count:] {
