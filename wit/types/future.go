@@ -33,6 +33,9 @@ type FutureReader[T any] struct {
 // Read will panic if multiple concurrent or sequential reads are attempted on the same future.
 func (self *FutureReader[T]) Read() T {
 	handle := self.handle.Take()
+
+	// If the task is cancelled, `FutureOrStreamWait` calls `runtime.Goexit`
+	// which will in turn invoke any deferred functions.
 	defer self.vtable.DropReadable(handle)
 
 	pinner := runtime.Pinner{}
@@ -49,12 +52,8 @@ func (self *FutureReader[T]) Read() T {
 		} else {
 			return self.vtable.Lift(buffer)
 		}
-
-	case witAsync.RETURN_CODE_DROPPED:
-		panic("unreachable")
-
 	default:
-		panic("todo: handle cancellation")
+		panic("unreachable")
 	}
 }
 
@@ -98,6 +97,9 @@ type FutureWriter[T any] struct {
 // Write will panic if multiple concurrent or sequential writes are attempted on the same future.
 func (self *FutureWriter[T]) Write(item T) bool {
 	handle := self.handle.Take()
+
+	// If the task is cancelled, `FutureOrStreamWait` calls `runtime.Goexit`
+	// which will in turn invoke any deferred functions.
 	defer self.vtable.DropWritable(handle)
 
 	pinner := runtime.Pinner{}
@@ -126,7 +128,7 @@ func (self *FutureWriter[T]) Write(item T) bool {
 		return false
 
 	default:
-		panic("todo: handle cancellation")
+		panic("unreachable")
 	}
 }
 
