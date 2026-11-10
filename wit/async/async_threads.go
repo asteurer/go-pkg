@@ -13,15 +13,26 @@ import (
 // waitable-set.wait does not stop the other threads. There is no callback
 // loop, no task state and no scheduler idle hook.
 
+// DrainHook, if set, is called after the body of an export has returned its
+// result. The export does not complete until it returns, so it can wait for
+// work that the body started, such as a goroutine that writes a response
+// body. If it is not set, Run waits until the goroutines that were started
+// since it began have finished, which assumes that exports do not overlap.
+var DrainHook func()
+
 // Run runs the body of an async export on the calling thread. After the body
-// has returned its result, it keeps the task alive until the goroutines that
-// the body started have finished, so a handler can stream a response body
-// from a goroutine.
+// has returned its result, it keeps the task alive until the work that the
+// body started has finished, so a handler can stream a response body from a
+// goroutine.
 func Run(closure func()) uint32 {
 	base := runtime.NumGoroutine()
 	closure()
-	for runtime.NumGoroutine() > base {
-		runtime.Gosched()
+	if DrainHook != nil {
+		DrainHook()
+	} else {
+		for runtime.NumGoroutine() > base {
+			runtime.Gosched()
+		}
 	}
 	return CALLBACK_CODE_EXIT
 }
