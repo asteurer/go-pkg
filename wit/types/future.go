@@ -58,6 +58,39 @@ func (self *FutureReader[T]) Read() T {
 	}
 }
 
+// Like Read, but reports whether the future completed with a value. It
+// returns false if the writer was dropped without writing one.
+//
+// # Panic
+//
+// TryRead will panic if multiple concurrent or sequential reads are attempted on the same future.
+func (self *FutureReader[T]) TryRead() (T, bool) {
+	handle := self.handle.Take()
+	defer self.vtable.DropReadable(handle)
+
+	pinner := runtime.Pinner{}
+	defer pinner.Unpin()
+
+	buffer := witRuntime.Allocate(&pinner, uintptr(self.vtable.Size), uintptr(self.vtable.Align))
+
+	code, _ := witAsync.FutureOrStreamWait(self.vtable.Read(handle, buffer), handle)
+
+	switch code {
+	case witAsync.RETURN_CODE_COMPLETED:
+		if self.vtable.Lift == nil {
+			return unsafe.Slice((*T)(buffer), 1)[0], true
+		}
+		return self.vtable.Lift(buffer), true
+
+	case witAsync.RETURN_CODE_DROPPED:
+		var zero T
+		return zero, false
+
+	default:
+		panic("todo: handle cancellation")
+	}
+}
+
 // Notify the host that the FutureReader is no longer being used.
 func (self *FutureReader[T]) Drop() {
 	handle := self.handle.TakeOrNil()
